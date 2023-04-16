@@ -1,4 +1,3 @@
-import glob
 import hashlib
 import html
 import http
@@ -9,12 +8,9 @@ import ssl
 import time
 import urllib.request
 
-import requests
 import tldextract
 
 import hashlib
-import os
-import re
 from collections import Counter
 import string
 import justext
@@ -23,7 +19,6 @@ import argparse
 from argparse import ArgumentParser
 
 import glob as glob
-
 import ray
 
 
@@ -31,64 +26,60 @@ ray.init()
 
 
 def parse_html(page):
-    """ Clean HTML tags for webpages that aren't Gutenberg books
-    """
+    """Clean HTML tags for webpages that aren't Gutenberg books"""
     try:
-        parts = justext.justext(page, justext.get_stoplist('English'))
+        parts = justext.justext(page, justext.get_stoplist("English"))
     except lxml.etree.ParserError as e:
-        print('Page empty')
-        return ''
+        print("Page empty")
+        return ""
     except UnicodeDecodeError as e:
         print("Can't decode utf-8")
-        return ''
+        return ""
     paragraphs = []
     for part in parts:
         if not part.is_boilerplate:
             paragraphs.append(part.text)
-    return '\n\n'.join(paragraphs)
+    return "\n\n".join(paragraphs)
 
 
 def clean_html(txt):
-    """ Clean HTML tags of webpages downloaded
+    """Clean HTML tags of webpages downloaded
     Use this function for Gutenberg book format.
     """
-    style_tag_re = re.compile('<style.*?>[^<>]*?</style>')
-    txt = re.sub(style_tag_re, ' ', txt)
-    script_tag_re = re.compile('<script.*?>[^<>]*?</script>')
-    txt = re.sub(script_tag_re, ' ', txt)
-    doc_tag_re = re.compile('<!DOCTYPE[^<>]*?>')
-    txt = re.sub(doc_tag_re, ' ', txt)
-    html_tag_re = re.compile('<.*?>')
+    style_tag_re = re.compile("<style.*?>[^<>]*?</style>")
+    txt = re.sub(style_tag_re, " ", txt)
+    script_tag_re = re.compile("<script.*?>[^<>]*?</script>")
+    txt = re.sub(script_tag_re, " ", txt)
+    doc_tag_re = re.compile("<!DOCTYPE[^<>]*?>")
+    txt = re.sub(doc_tag_re, " ", txt)
+    html_tag_re = re.compile("<.*?>")
     txt = connect_lines(txt)
-    return re.sub(html_tag_re, ' ', txt).strip()
+    return re.sub(html_tag_re, " ", txt).strip()
 
 
 def remove_non_alphanumeric(txt):
-    """ Remove all non-alphanumeric characters, except space, from the text
-    """
-    return re.sub(r'[^a-zA-Z0-9 ]+', '', txt)
+    """Remove all non-alphanumeric characters, except space, from the text"""
+    return re.sub(r"[^a-zA-Z0-9 ]+", "", txt)
 
 
 def remove_non_alpha(txt):
-    """ Remove all non-alphabetical characters, except space, from the text
-    """
-    return re.sub(r'[^a-zA-Z ]+', '', txt)
+    """Remove all non-alphabetical characters, except space, from the text"""
+    return re.sub(r"[^a-zA-Z ]+", "", txt)
 
 
 def transliterate(txt):
-    """ Transliterate foreign characters into its Latin spelling.
+    """Transliterate foreign characters into its Latin spelling.
     For example, '\u5317\u4EB0' will be transliterated to 'Bei Jing'
     """
     return unidecode(txt)
 
 
 def collapse_white_spaces(txt):
-    """Collapse multiple white spaces into one white space
-    """
-    clean_txt = ''
+    """Collapse multiple white spaces into one white space"""
+    clean_txt = ""
     prev = None
     for c in txt:
-        if c == ' ' and prev == ' ':
+        if c == " " and prev == " ":
             continue
         else:
             clean_txt += c
@@ -96,42 +87,44 @@ def collapse_white_spaces(txt):
     return clean_txt
 
 
-def connect_lines(txt, line_sep='\n'):
-    """ This happens when you crawl text from a webpage and
+def connect_lines(txt, line_sep="\n"):
+    """This happens when you crawl text from a webpage and
     they have random breaking lines mid-sentence.
 
     This function is to connect those lines.
 
     Two consecutive lines are separated by line_sep.
     """
-    lines = txt.split('\n')
+    lines = txt.split("\n")
 
-    result, curr = '', ''
+    result, curr = "", ""
     for line in lines:
         line = line.strip()
         if not line:
             if curr:
-                result += (curr + '\n')
+                result += curr + "\n"
             result += line_sep
-            curr = ''
+            curr = ""
         else:
-            curr += (line + ' ')
+            curr += line + " "
 
     return result + curr
 
+
 def clean_page(page):
     try:
-        page = page.decode('utf-8')
+        page = page.decode("utf-8")
     except:
         print("Can't decode")
 
     page = page.strip()
     if not page:
-        return ''
+        return ""
     txt = parse_html(page)
     txt = transliterate(txt)
     txt = html.unescape(txt)
     return txt
+
 
 def find_unprintable(txt):
     """Find the list of unprintable character
@@ -141,13 +134,15 @@ def find_unprintable(txt):
     unprintable = [c for c in txt if c not in printable]
     return Counter(unprintable)
 
+
 ############################################
 
+
 def dict_sorted_2_file(dictionary, file, reverse=True):
-    with open(file, 'w') as out:
+    with open(file, "w") as out:
         sorted_keys = sorted(dictionary, key=dictionary.get, reverse=reverse)
         for k in sorted_keys:
-            out.write('{}\t{}\n'.format(k, dictionary[k]))
+            out.write("{}\t{}\n".format(k, dictionary[k]))
 
 
 def get_hash(txt):
@@ -166,19 +161,19 @@ def is_positive_number(string, neg=False):
         return False
     if string.isdigit():
         return True
-    idx = string.find('.')
+    idx = string.find(".")
     if idx > -1 and idx < len(string) - 1:
         if idx == 0 and neg:
             return False
-        new_string = string[:idx] + string[idx + 1:]
+        new_string = string[:idx] + string[idx + 1 :]
         if new_string.isdigit():
             return True
     rev = string[::-1]
-    idx = rev.find(',')
+    idx = rev.find(",")
 
     while idx > 0 and idx % 3 == 0 and rev[:idx].isdigit():
-        rev = rev[idx + 1:]
-        idx = rev.find(',')
+        rev = rev[idx + 1 :]
+        idx = rev.find(",")
 
     if idx == -1 and rev.isdigit():
         return True
@@ -186,19 +181,19 @@ def is_positive_number(string, neg=False):
 
 
 def is_number(string):
-    """ Return true if:
+    """Return true if:
     integer
     float (both in 32.0323 and .230)
     numbers in the format 239,000,000
     negative number
     """
-    if string and string[0] == '-':
+    if string and string[0] == "-":
         return is_positive_number(string[1:], True)
     return is_positive_number(string)
 
 
 def get_english_alphabet():
-    return set([chr(i) for i in range(ord('a'), ord('z') + 1)])
+    return set([chr(i) for i in range(ord("a"), ord("z") + 1)])
 
 
 def sort_files_by_size(files):
@@ -210,35 +205,35 @@ def sort_files_by_size(files):
 
 
 def get_filename(path):
-    return path[path.rfind('/') + 1:]
+    return path[path.rfind("/") + 1 :]
 
 
 def get_raw_url(url):
-    """ without http, https, www
-    """
-    idx = url.rfind('//')
+    """without http, https, www"""
+    idx = url.rfind("//")
     if idx > -1:
-        url = url[idx + 2:]
-    if url.startswith('www'):
-        url = url[url.find('.') + 1:]
+        url = url[idx + 2 :]
+    if url.startswith("www"):
+        url = url[url.find(".") + 1 :]
     return url
 
 
 def sort_lines(file, reverse=False):
     seen = set()
-    with open(file, 'r') as f:
+    with open(file, "r") as f:
         lines = sorted(f.readlines())
-    with open(file, 'w') as f:
+    with open(file, "w") as f:
         for line in lines:
             if line not in seen:
                 seen.add(line)
                 f.write(line)
 
+
 def to_skip(link, extensions=None, domains=None):
-    """ domains can be:
-            - just the name (as in: google)
-            - main domain (as in: google.com)
-            - subdomain (as in: news.google.com)
+    """domains can be:
+    - just the name (as in: google)
+    - main domain (as in: google.com)
+    - subdomain (as in: news.google.com)
     """
     for ext in extensions:
         if link.endswith(ext):
@@ -247,11 +242,12 @@ def to_skip(link, extensions=None, domains=None):
     subdomain, domain, suffix = tldextract.extract(link)
     if domain in domains:
         return True
-    if '.'.join([domain, suffix]) in domains:
+    if ".".join([domain, suffix]) in domains:
         return True
-    if '.'.join([subdomain, domain, suffix]) in domains:
+    if ".".join([subdomain, domain, suffix]) in domains:
         return True
     return False
+
 
 def download_page(link, context=None, timeout=None, id=None):
     """
@@ -267,49 +263,48 @@ def download_page(link, context=None, timeout=None, id=None):
         req = urllib.request.Request(link)
     except ValueError as e:
         print(link, "doesn't exist.")
-        return 1, ''
+        return 1, ""
     except ConnectionResetError as e:
-        print('ConnectionResetError', link)
-        return 3, ''
+        print("ConnectionResetError", link)
+        return 3, ""
 
     try:
         if timeout is not None:
-            response = urllib.request.urlopen(
-                req, context=context, timeout=timeout)
+            response = urllib.request.urlopen(req, context=context, timeout=timeout)
         else:
             response = urllib.request.urlopen(req, context=context)
     except UnicodeError as e:
-        print('UnicodeError for', link)
-        return 2, ''
-    except (urllib.error.HTTPError) as e:
-        print('Error {} for {}'.format(e.code, link))
-        return 1, ''
+        print("UnicodeError for", link)
+        return 2, ""
+    except urllib.error.HTTPError as e:
+        print("Error {} for {}".format(e.code, link))
+        return 1, ""
     except urllib.error.URLError as e:
-        print('URLError for', link)
-        return 1, ''
+        print("URLError for", link)
+        return 1, ""
     except http.client.HTTPException as e:
-        print('HTTPException', link)
-        return 1, ''
+        print("HTTPException", link)
+        return 1, ""
     except http.client.RemoteDisconnected as e:
-        print('RemoteDisconnected', link)
-        return 1, ''
+        print("RemoteDisconnected", link)
+        return 1, ""
     except (ConnectionError, socket.timeout) as e:
-        print('ConnectionError or Timeout', link)
-        return 3, ''
+        print("ConnectionError or Timeout", link)
+        return 3, ""
 
     try:
-        page = response.read()            
+        page = response.read()
     except http.client.HTTPException as e:
-        print('HTTPException', link)
-        return 1, ''
+        print("HTTPException", link)
+        return 1, ""
     except (ConnectionError, socket.timeout) as e:
-        print('ConnectionError or Timeout', link)
-        return 3, ''
+        print("ConnectionError or Timeout", link)
+        return 3, ""
     return 0, page
 
 
 def get_current_idx(index_file, links):
-    lines = open(index_file, 'r').readlines()
+    lines = open(index_file, "r").readlines()
     idx = len(lines)
     if idx > 0:
         last_seen = lines[-1].strip()
@@ -319,13 +314,11 @@ def get_current_idx(index_file, links):
                 break
     return idx, links
 
+
 @ray.remote
-def download_pages(link,
-                   folder,
-                   timeout=30,
-                   default_skip=True,
-                   extensions=[],
-                   domains=[]):
+def download_pages(
+    link, folder, timeout=30, default_skip=True, extensions=[], domains=[]
+):
     """
     link_file (str):
         file contains links to pages to crawl. Each line contains one URL.
@@ -368,12 +361,12 @@ def download_pages(link,
 
     os.makedirs(folder, exist_ok=True)
 
-    index = open(os.path.join(folder, 'index.urls'), 'a')
-    skipped_urls = open(os.path.join(folder, 'skip.urls'), 'a')
-    bad_connection_urls = open(os.path.join(folder, 'connection.urls'), 'a')
-    bad_urls = open(os.path.join(folder, 'bad.urls'), 'a')
-    non_ascii_urls = open(os.path.join(folder, 'non_ascii.urls'), 'a')
-    empty_urls = open(os.path.join(folder, 'empty.urls'), 'a')
+    index = open(os.path.join(folder, "index.urls"), "a")
+    skipped_urls = open(os.path.join(folder, "skip.urls"), "a")
+    bad_connection_urls = open(os.path.join(folder, "connection.urls"), "a")
+    bad_urls = open(os.path.join(folder, "bad.urls"), "a")
+    non_ascii_urls = open(os.path.join(folder, "non_ascii.urls"), "a")
+    empty_urls = open(os.path.join(folder, "empty.urls"), "a")
 
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
@@ -382,54 +375,66 @@ def download_pages(link,
     hashed = hashlib.sha1()
 
     if default_skip:
-        ext_lines = open(f'./url_list/exclude_extensions.txt', 'r').readlines()
+        ext_lines = open(f"./url_list/exclude_extensions.txt", "r").readlines()
         extensions.extend([line.strip() for line in ext_lines])
-        domain_lines = open(f'./url_list/exclude_domains.txt', 'r').readlines()
+        domain_lines = open(f"./url_list/exclude_domains.txt", "r").readlines()
         domains.extend([line.strip() for line in domain_lines])
 
     link = link.strip()
     if to_skip(link, extensions, domains):
-        skipped_urls.write(link + '\n')
-        print('Skip', link)
+        skipped_urls.write(link + "\n")
+        print("Skip", link)
 
     code, page = download_page(link, ctx, timeout)
     if code == 1:
-        bad_urls.write(link + '\n')
+        bad_urls.write(link + "\n")
     elif code == 2:
-        non_ascii_urls.write(link + '\n')
+        non_ascii_urls.write(link + "\n")
     elif code == 3:
-        bad_connection_urls.write(link + '\n')
+        bad_connection_urls.write(link + "\n")
     if code > 0:
-        print('Bad page', link)
+        print("Bad page", link)
 
     txt = clean_page(page)
 
     if not txt:
-        print('Empty page', link)
-        empty_urls.write(link + '\n')
+        print("Empty page", link)
+        empty_urls.write(link + "\n")
 
     print(idx, link)
     hashed.update(str(time.time()).encode())
     name = hashed.hexdigest()
-    with open(f'{folder}/{idx}_{name}.txt', 'w') as out:
-        out.write(link + '\n' + txt)
+    with open(f"{folder}/{idx}_{name}.txt", "w") as out:
+        out.write(link + "\n" + txt)
 
     print(find_unprintable(txt))
-    index.write('{}\n'.format(link))
+    index.write("{}\n".format(link))
     idx += 1
-    
-    
-    
-if __name__ == '__main__':
+
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument('--url_file', type=str, help='file contains links to pages to crawl. Each line contains one URL.')
+    parser.add_argument('--output_folder', type=str, help='folder that you want to contain your downloaded pages.')
     args = parser.parse_args()
     url_file = args.url_file
     output_folder = args.output_folder
-    
-     
-    with open(url_file, 'r') as f:
+
+    with open(url_file, "r") as f:
         links = f.readlines()
 
-    output = [download_pages.remote(link, output_folder, timeout=30, default_skip=True, extensions=[], domains=[]) for link in links]
+    output = [
+        download_pages.remote(
+            link,
+            output_folder,
+            timeout=30,
+            default_skip=True,
+            extensions=[],
+            domains=[],
+        )
+        for link in links
+    ]
     output = ray.get(output)
     print(output)
+    
+    
