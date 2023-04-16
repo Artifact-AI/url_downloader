@@ -32,6 +32,4 @@ The input file should be a text file with one URL per line. The output directory
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Acknowledgments
-The script borrows heavily from the 
-
-[1]:
+The script borrows heavily from Chip Huyen's [LazyNLP Repo](https://github.com/chiphuyen/lazynlp) 
