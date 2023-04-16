@@ -414,8 +414,16 @@ def download_pages(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--url_file', type=str, help='file contains links to pages to crawl. Each line contains one URL.')
-    parser.add_argument('--output_folder', type=str, help='folder that you want to contain your downloaded pages.')
+    parser.add_argument(
+        "--url_file",
+        type=str,
+        help="file contains links to pages to crawl. Each line contains one URL.",
+    )
+    parser.add_argument(
+        "--output_folder",
+        type=str,
+        help="folder that you want to contain your downloaded pages.",
+    )
     args = parser.parse_args()
     url_file = args.url_file
     output_folder = args.output_folder
@@ -436,5 +444,3 @@ if __name__ == "__main__":
     ]
     output = ray.get(output)
     print(output)
-    
-    
