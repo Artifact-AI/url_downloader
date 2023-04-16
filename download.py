@@ -1,3 +1,5 @@
+import argparse
+import glob as glob
 import hashlib
 import html
 import http
@@ -5,22 +7,16 @@ import os
 import re
 import socket
 import ssl
+import string
 import time
 import urllib.request
-
-import tldextract
-
-import hashlib
-from collections import Counter
-import string
-import justext
-from unidecode import unidecode
-import argparse
 from argparse import ArgumentParser
+from collections import Counter
 
-import glob as glob
+import justext
 import ray
-
+import tldextract
+from unidecode import unidecode
 
 ray.init()
 
