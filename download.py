@@ -371,10 +371,20 @@ def download_pages(
     hashed = hashlib.sha1()
 
     if default_skip:
-        ext_lines = open(f"./url_list/exclude_extensions.txt", "r").readlines()
+        if args.extensions is None:
+            ext_lines = open(f"./url_list/exclude_extensions.txt", "r").readlines()
+            
+        else:
+            ext_lines = open(args.extensions, "r").readlines()
+            
+        if args.domains is None:
+            domain_lines = open(f"./url_list/exclude_domains.txt", "r").readlines()
+        else:
+            domain_lines = open(args.domains, "r").readlines()
+        
         extensions.extend([line.strip() for line in ext_lines])
-        domain_lines = open(f"./url_list/exclude_domains.txt", "r").readlines()
         domains.extend([line.strip() for line in domain_lines])
+        
 
     link = link.strip()
     if to_skip(link, extensions, domains):
@@ -419,6 +429,12 @@ if __name__ == "__main__":
         "--output_folder",
         type=str,
         help="folder that you want to contain your downloaded pages.",
+    )
+    parser.add_argument(
+        "--exclude_domains", type=str, help="file contains domains to skip"
+    )
+    parser.add_argument(
+        "--exclude_extensions", type=str, help="file contains extensions to skip"
     )
     args = parser.parse_args()
     url_file = args.url_file
